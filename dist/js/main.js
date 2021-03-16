@@ -1,6 +1,8 @@
 import {
     setLocationObject,
     getHomeLocation,
+    getWeatherFromCoords,
+    getCoordsFromApi,
     cleanText
 } from "./dataFunctions.js"
 import {
@@ -8,7 +10,8 @@ import {
     addSpinner,
     displayError,
     displayApiError,
-    updateScreenReaderConfirmation
+    updateScreenReaderConfirmation,
+    updateDisplay
 } from "./domFunctions.js"
 
 import CurrentLocation from "./CurrentLocation.js"
@@ -125,22 +128,33 @@ const refreshWeather = () => {
 const submitNewLocation = async (e) => {
     e.preventDefault()
     const text = document.getElementById("searchBar__text").value
+    document.getElementById("searchBar__text").value = ""
     const entryText = cleanText(text)
     if (!entryText.length) return
     const locationIcon = document.querySelector(".fa-search")
     addSpinner(locationIcon)
     const coordsData = await getCoordsFromApi(entryText, currentLoc.getUnit())
-    if (coordsData.cod === 200) {
-        const myCoordsObj = {}
-        setLocationObject(currentLoc, myCoordsObj)
-        updateDataAndDisplay(currentLoc)
+    if (coordsData) {
+        if (coordsData.cod === 200) {
+            const myCoordsObj = {
+                lat: coordsData.coord.lat,
+                lon: coordsData.coord.lon,
+                name: coordsData.sys.country
+                    ? `${coordsData.name}, ${coordsData.sys.country}`
+                    : coordsData.name
+            }
+            setLocationObject(currentLoc, myCoordsObj)
+            updateDataAndDisplay(currentLoc)
+        } else {
+            displayApiError(coordsData)
+        }
     } else {
-        displayApiError(coordsData)
+        displayError("Connection Error", "Connection Error")
     }
 }
 
 const updateDataAndDisplay = async (locationObj) => {
-    console.log(locationObj)
-    //const weatherJson = await getWeatherFromCoords(locationObj)
-    //if (weatherJson) updateDisplay(weatherJson, locationObj)
+    // console.log(locationObj)
+    const weatherJson = await getWeatherFromCoords(locationObj)    
+    if (weatherJson) updateDisplay(weatherJson, locationObj)
 }
